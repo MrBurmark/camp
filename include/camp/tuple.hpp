@@ -127,7 +127,7 @@ namespace internal
 
     CAMP_HIP_HOST_DEVICE
     tuple_helper& operator=(const tuple_helper& rhs) = default;
-#if (!defined(__NVCC__))            \
+#if (!defined(__NVCC__))          \
     || (__CUDACC_VER_MAJOR__ > 10 \
         || (__CUDACC_VER_MAJOR__ == 10 && __CUDACC_VER_MINOR__ >= 1))
     CAMP_HIP_HOST_DEVICE
@@ -484,7 +484,9 @@ CAMP_HOST_DEVICE constexpr auto tuple_cat_pair(tuple<Lelem...> const& l,
     -> tuple<camp::at_v<camp::list<Lelem...>, Lidx>...,
              camp::at_v<camp::list<Relem...>, Ridx>...>
 {
-  return ::camp::make_tuple(get<Lidx>(l)..., get<Ridx>(r)...);
+  return ::camp::tuple<camp::at_v<camp::list<Lelem...>, Lidx>...,
+                       camp::at_v<camp::list<Relem...>, Ridx>...>(
+      get<Lidx>(l)..., get<Ridx>(r)...);
 }
 
 template <typename L, typename R>
