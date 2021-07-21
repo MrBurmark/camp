@@ -13,6 +13,11 @@ http://github.com/llnl/camp
 
 #include <cstddef>
 #include <cstdint>
+#include <string>
+
+#if defined(__CUDACC__) || defined(CAMP_HAVE_CUDA)
+#include <cuda_runtime.h>
+#endif
 
 #if defined(__HIPCC__)
 #include <hip/hip_runtime.h>
@@ -88,14 +93,25 @@ namespace camp
 
 #define CAMP_SUPPRESS_HD_WARN
 
+#elif defined(SYCL_LANGUAGE_VERSION)
+#define CAMP_HAVE_SYCL 1
+#define CAMP_DEVICE
+#define CAMP_HOST_DEVICE
+#define CAMP_SUPPRESS_HD_WARN
+
 #else
 #define CAMP_DEVICE
 #define CAMP_HOST_DEVICE
 #define CAMP_SUPPRESS_HD_WARN
 #endif
 
+#if defined(ENABLE_TARGET_OPENMP)
 #if _OPENMP >= 201511
 #define CAMP_HAVE_OMP_OFFLOAD 1
+#else
+#define CAMP_HAVE_OMP_OFFLOAD 0
+#warning Compiler does NOT support OpenMP Target Offload even though user has enabled it!
+#endif
 #endif
 
 // This works for:
@@ -162,6 +178,62 @@ using nullptr_t = decltype(nullptr);
   struct X##_l {                                                   \
     using type = typename X<Lambda::template expr, Rest...>::type; \
   }
+
+
+#ifdef CAMP_HAVE_CUDA
+
+#define campCudaErrchk(ans)                             \
+    ::camp::cudaAssert((ans), #ans, __FILE__, __LINE__)
+
+inline cudaError_t cudaAssert(cudaError_t code,
+                              const char *call,
+                              const char *file,
+                              int line)
+{
+  if (code != cudaSuccess && code != cudaErrorNotReady) {
+    std::string msg;
+    msg += "campCudaErrchk(";
+    msg += call;
+    msg += ") ";
+    msg += cudaGetErrorString(code);
+    msg += " ";
+    msg += file;
+    msg += ":";
+    msg += std::to_string(line);
+    throw std::runtime_error(msg);
+  }
+  return code;
+}
+
+#endif  //#ifdef CAMP_HAVE_CUDA
+
+
+#ifdef CAMP_HAVE_HIP
+
+#define campHipErrchk(ans)                             \
+    ::camp::hipAssert((ans), #ans, __FILE__, __LINE__)
+
+inline hipError_t hipAssert(hipError_t code,
+                            const char *call,
+                            const char *file,
+                            int line)
+{
+  if (code != hipSuccess && code != hipErrorNotReady) {
+    std::string msg;
+    msg += "campHipErrchk(";
+    msg += call;
+    msg += ") ";
+    msg += hipGetErrorString(code);
+    msg += " ";
+    msg += file;
+    msg += ":";
+    msg += std::to_string(line);
+    throw std::runtime_error(msg);
+  }
+  return code;
+}
+
+#endif  //#ifdef CAMP_HAVE_HIP
 
 }  // namespace camp
 

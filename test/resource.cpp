@@ -72,6 +72,26 @@ TEST(CampResource, Reassignment)
   ASSERT_EQ(typeid(c2), typeid(h2));
 }
 
+TEST(CampResource, StreamSelect)
+{
+  cudaStream_t stream1, stream2;
+
+  cudaStreamCreate(&stream1);
+  cudaStreamCreate(&stream2);
+
+  Resource c1{CudaFromStream(stream1)};
+  Resource c2{CudaFromStream(stream2)};
+
+  const int N = 5;
+  int* d_array1 = c1.allocate<int>(5);
+  int* d_array2 = c2.allocate<int>(5);
+
+  c1.deallocate(d_array1);
+  c2.deallocate(d_array2);
+
+  cudaStreamDestroy(stream1);
+  cudaStreamDestroy(stream2);
+}
 
 TEST(CampResource, Get)
 {
@@ -137,6 +157,27 @@ TEST(CampResource, Reassignment)
   ASSERT_EQ(typeid(c2), typeid(h2));
 }
 
+TEST(CampResource, StreamSelect)
+{
+  hipStream_t stream1, stream2;
+
+  hipStreamCreate(&stream1);
+  hipStreamCreate(&stream2);
+
+  Resource c1{Hip(stream1)};
+  Resource c2{Hip(stream2)};
+
+  const int N = 5;
+  int* d_array1 = c1.allocate<int>(5);
+  int* d_array2 = c2.allocate<int>(5);
+
+  c1.deallocate(d_array1);
+  c2.deallocate(d_array2);
+
+  hipStreamDestroy(stream1);
+  hipStreamDestroy(stream2);
+}
+
 TEST(CampResource, Get)
 {
   Resource dev_host{Host()};
@@ -189,7 +230,7 @@ TEST(CampEvent, Get)
 #endif
 
 template<typename Res>
-static EventProxy<Res> do_stuff(Res* r)
+static EventProxy<Res> do_stuff(Res r)
 {
   return EventProxy<Res>(r);
 }
@@ -198,20 +239,20 @@ TEST(CampEventProxy, Get)
 {
   Host h1{Host{}};
   {
-    EventProxy<Host> ep{&h1};
+    EventProxy<Host> ep{h1};
     Event e = ep;
   }
 
   {
-    Event e = do_stuff(&h1);
+    Event e = do_stuff(h1);
   }
 
   {
-    do_stuff(&h1);
+    do_stuff(h1);
   }
 
   {
-    EventProxy<Host> ep{&h1};
+    EventProxy<Host> ep{h1};
     Event e = ep.get();
   }
 }

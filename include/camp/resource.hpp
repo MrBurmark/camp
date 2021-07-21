@@ -26,6 +26,10 @@ http://github.com/llnl/camp
 #if defined(CAMP_HAVE_HIP)
 #include "camp/resource/hip.hpp"
 #endif
+#if defined(CAMP_HAVE_SYCL)
+#include "camp/resource/sycl.hpp"
+#endif
+
 #if defined(CAMP_HAVE_OMP_OFFLOAD)
 #include "camp/resource/omp_target.hpp"
 #endif
@@ -148,6 +152,12 @@ namespace resources
       using type = ::camp::resources::Hip;
     };
 #endif
+#if defined(CAMP_HAVE_SYCL)
+    template <>
+    struct resource_from_platform<Platform::sycl> {
+      using type = ::camp::resources::Sycl;
+    };
+#endif
 #if defined(CAMP_HAVE_OMP_OFFLOAD)
     template <>
     struct resource_from_platform<Platform::omp_target> {
@@ -164,23 +174,23 @@ namespace resources
     EventProxy &operator=(EventProxy &&) = default;
     EventProxy &operator=(EventProxy const &) = delete;
 
-    EventProxy(Res* r) :
+    EventProxy(Res r) :
       resource_{r}
     {}
 
-    native_event get() const {
-      return resource_->get_event();
+    native_event get() {
+      return resource_.get_event();
     }
 
-    operator native_event() const {
-      return resource_->get_event();
+    operator native_event() {
+      return resource_.get_event();
     }
 
-    operator Event() const {
-      return resource_->get_event_erased();
+    operator Event() {
+      return resource_.get_event_erased();
     }
 
-    Res* resource_;
+    Res resource_;
   };
 
   }  // namespace v1
